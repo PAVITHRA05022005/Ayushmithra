@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>Ayushmithra</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="icon" href="img/logo5.png">
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+  <script src="firebase.js"></script>
+  <script>
+    function login() {
+      const email = document.getElementById('loginEmail').value;
+      const password = document.getElementById('loginPassword').value;
+      if(email==="admin@gmail.com" && password === "admin@12")
+      {
+        window.location.href = 'admin.html';
+      }
+
+      firebase.auth().signInWithEmailAndPassword(email, password)
+        .then((userCredential) => {
+          const user = userCredential.user;
+          window.location.href = `index.html?email=${email}`;
+        })
+        .catch((error) => {
+          const errorCode = error.code;
+          const errorMessage = error.message;
+          console.error('Login error:', errorMessage);
+          alert(errorMessage);
+        });
+    }
+  </script>
+  <script>
+    function signUpUser(name, email, password, idProofFile) {
+      const usersRef = database.ref('users');
+    
+      // Check if the email is already registered
+      usersRef.orderByChild('email').equalTo(email).once('value')
+        .then(snapshot => {
+          if (snapshot.exists()) {
+            alert('This email is already registered. Please use a different email.');
+          } else {
+            // Upload ID proof image to Firebase Storage
+            const storageRef = firebase.storage().ref();
+            const idProofImageRef = storageRef.child(`idProofs/${email}_${idProofFile.name}`);
+    
+            return idProofImageRef.put(idProofFile)
+              .then(snapshot => snapshot.ref.getDownloadURL())
+              .then(idProofURL => {
+                // Save user data including ID proof URL to the database
+                return database.ref('users').push({
+                  name: name,
+                  email: email,
+                  password: password,
+                  approved: 'no',
+                  idProofURL: idProofURL // Store ID proof image URL in database
+                });
+              })
+              .then(() => {
+                alert('Sign up successful! Wait for admin approval.');
+                window.location.reload();
+              })
+              .catch(error => {
+                console.error('Error uploading ID proof or saving user data:', error);
+                alert('An error occurred during sign up. Please try again.');
+              });
+          }
+        })
+        .catch(error => {
+          console.error('Error checking email existence:', error);
+          alert('An error occurred. Please try again.');
+        });
+    }
+    
+    function signup() {
+      event.preventDefault();
+    
+      // Get user input values
+      const name = document.querySelector('input[name="name"]').value;
+      const email = document.querySelector('input[name="email"]').value;
+      const password = document.querySelector('input[name="password"]').value;
+      const idProofFile = document.querySelector('input[name="idProof"]').files[0]; // Get uploaded file
+    
+      if (!idProofFile) {
+        alert('Please upload ID proof.');
+        return;
+      }
+    
+      signUpUser(name, email, password, idProofFile);
+    }
+    
+
+  </script>
+</head>
+<body>
+  <main>
+    <div class="box">
+      <div class="inner-box">
+        <div class="forms-wrap">
+          <form class="sign-in-form">
+            <div class="logo">
+              <img src="./img/logo5.png" alt="Ayushmithra" />
+              <h3>Ayushmithra</h3>
+            </div>
+
+            <div class="heading">
+              <h2>Welcome to Ayushmithra</h2>
+              <h6>Not registered yet?</h6>
+              <a href="#" class="toggle">Create Your Account</a>
+            </div>
+
+            <div class="actual-form">
+              <div class="input-wrap">
+                <input type="text" id="loginEmail" class="input-field" placeholder="Email" required />
+              </div>
+
+              <div class="input-wrap">
+                <input type="password" id="loginPassword" class="input-field" placeholder="Password" required />
+              </div>
+
+              <input type="button" onclick="login()" value="Get Started &nbsp;&nbsp;&nbsp;&nbsp;&rarr;" class="sign-btn" />
+            </div>
+          </form>
+
+          <form class="sign-up-form" onsubmit="signup();">
+            <div class="logo">
+              <img src="./img/logo5.png" alt="Ayushmithra" />
+              <h3>Ayushmithra</h3>
+            </div>
+
+            <div class="heading">
+              <h2>Get Started</h2>
+              <h6>Already have an account?</h6>
+              <a href="#" class="toggle">Sign in</a>
+            </div>
+
+            <div class="actual-form">
+              <div class="input-wrap">
+                <input type="text" name="name" class="input-field" placeholder="Name" required />
+              </div>
+
+              <div class="input-wrap">
+                <input type="email" name="email" class="input-field" placeholder="Email" required />
+              </div>
+
+              <div class="input-wrap">
+                <input type="password" name="password" class="input-field" placeholder="Password" required />
+              </div>
+
+              <div class="input-wrap">
+                <label for="idProof">Upload ID Proof:</label><br><br>
+                <input type="file" id="idProof" name="idProof" accept="image/*" required />
+              </div><br>          
+
+              <input type="submit" value="Sign Up" class="sign-btn" />
+
+              <!-- <p class="text">
+                By signing up, I agree to the
+                <a href="#">Terms of Service</a> and
+                <a href="#">Privacy Policy</a>
+              </p> -->
+            </div>
+          </form>
+        </div>
+
+        <div class="carousel">
+          <div class="images-wrapper">
+            <img src="./img/logo2.png" class="image img-1 show" alt="" />
+            <img src="./img/image2.png" class="image img-2" alt="" />
+            <img src="./img/image3.png" class="image img-3" alt="" />
+          </div>
+
+          <div class="text-slider">
+            <div class="text-wrap">
+              <div class="text-group">
+                <h2>Get your updates</h2>
+                <h2>Prescription is given by Specialized Doctor</h2>
+                <h2>Your Credentials to Us</h2>
+              </div>
+            </div>
+
+            <div class="bullets">
+              <span class="active" data-value="1"></span>
+              <span data-value="2"></span>
+              <span data-value="3"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>

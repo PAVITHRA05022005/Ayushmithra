@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Page</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <script src="firebase.js"></script>
+    <script src="approve.js"></script>
+    <link href="https://fonts.googleapis.com/css?family=Open+Sans:300,400,700" rel="stylesheet">
+    <link rel="stylesheet" href="Assets/fonts/icomoon/style.css">
+    <link rel="stylesheet" href="Assets/css/owl.carousel.min.css">
+    <link rel="stylesheet" href="Assets/css/bootstrap.min.css">
+    <link rel="stylesheet" href="Assets/css/style.css">
+</head>
+<body>
+    <div class="site-mobile-menu">
+        <div class="site-mobile-menu-header">
+            <div class="site-mobile-menu-close mt-3">
+                <span class="icon-close2 js-menu-toggle"></span>
+            </div>
+        </div>
+        <div class="site-mobile-menu-body"></div>
+    </div>
+    
+    <header class="site-navbar" role="banner">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-11 col-xl-2">
+                    <h1 class="mb-0 site-logo"><a href="#" class="text-white mb-0">AYUSHMITHRA</a></h1>
+                </div>
+                <div class="col-12 col-md-10 d-none d-xl-block">
+                    <nav class="site-navigation position-relative text-right" role="navigation">
+                        <ul class="site-menu js-clone-nav mr-auto d-none d-lg-block">
+                            <li class="menu-item active" data-target="home"><a href="#">Add New</a></li>
+                            <li class="menu-item" data-target="listings"><a href="#">Previous</a></li>
+                            <li class="menu-item" data-target="contact"><a href="#">Approvals</a></li>
+                            <li><a onclick="signOut()" style="cursor: pointer;">Logout</a></li>
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <div class="container">
+            <div id="content">
+                <p>Welcome! Select a menu item to see its content.</p>
+            </div>
+        </div>
+    </main>
+
+    <script src="Assets/js/jquery-3.3.1.min.js"></script>
+    <script src="Assets/js/popper.min.js"></script>
+    <script src="Assets/js/bootstrap.min.js"></script>
+    <script src="Assets/js/jquery.sticky.js"></script>
+    <script src="Assets/js/main.js"></script>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const menuItems = document.querySelectorAll(".menu-item");
+
+            function loadContent(target) {
+                let content = "";
+                switch (target) {
+                    case "home":
+                        content = `
+                        <div id="addNewContent">
+                            <form id="newContentForm">
+                                <div class="form-row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="imageInput">Image:</label>
+                                        <div id="imagePreviewContainer" class="image-preview">
+                                            <img id="previewImage" src="#" alt="Image Preview">
+                                            <input type="file" id="imageInput" accept="image/*" style="display: none;">
+                                        </div>
+                                        <button type="button" id="chooseImageButton" class="btn btn-secondary mt-2">Choose Image</button>
+                                    </div>
+                        
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label for="diseaseNameInput">Disease Name:</label>
+                                            <input type="text" class="form-control" id="diseaseNameInput" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="symptomsInput">Symptoms:</label>
+                                            <textarea class="form-control" id="symptomsInput" rows="3" required></textarea>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="descriptionInput">Cure:</label>
+                                            <textarea class="form-control" id="descriptionInput" rows="5" required></textarea>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="linkInput">Link:</label>
+                                            <textarea class="form-control" id="linkInput" rows="2" required></textarea>
+                                        </div>
+                                    </div>
+                                </div>
+                                <button type="submit" class="btn btn-primary">Submit</button>
+                            </form>
+                        </div>
+                        `;
+                        break;
+                    case "listings":
+                        content = 
+                        `
+                        <div id="previousListings">
+                            <input type="text" id="searchInput" placeholder="Search by name...">
+                            <div id="listingContainer"></div>
+                        </div>
+                        <div style="display: none;"></div>
+                        `
+                        fetchPreviousListings();
+                        ;
+                        break;
+                    case "contact":
+                        displayApprovals();
+                        break;
+                    default:
+                        content = `
+                            <p>Welcome! Select a menu item to see its content.</p>
+                        `;
+                        break;
+                }
+                document.getElementById("content").innerHTML = content;
+                menuItems.forEach(item => {
+                    if (item.getAttribute("data-target") === target) {
+                        item.classList.add("active");
+                    } else {
+                        item.classList.remove("active");
+                    }
+                });
+                const chooseImageButton = document.getElementById("chooseImageButton");
+                if (chooseImageButton) {
+                    chooseImageButton.addEventListener("click", function() {
+                        imageInput.click(); // Trigger file input when button is clicked
+                    });
+                }
+                if (imageInput && previewImage) {
+                    imageInput.addEventListener("change", function() {
+                        const file = this.files[0];
+                        if (file) {
+                            const reader = new FileReader();
+                            reader.onload = function(e) {
+                                previewImage.src = e.target.result;
+                            };
+                            reader.readAsDataURL(file);
+                        }
+                    });
+                }
+            }
+            loadContent("home");
+            menuItems.forEach(function(item) {
+                item.addEventListener("click", function(event) {
+                    event.preventDefault();
+                    const target = item.getAttribute("data-target");
+                    loadContent(target);
+
+                    menuItems.forEach(function(menuItem) {
+                        menuItem.classList.remove("active");
+                    });
+                    item.classList.add("active");
+                });
+            });
+            const newContentForm = document.getElementById("newContentForm");
+            newContentForm.addEventListener("submit", function(event) {
+                event.preventDefault(); 
+            
+                const diseaseName = document.getElementById("diseaseNameInput").value.trim();
+                const symptoms = document.getElementById("symptomsInput").value.trim();
+                const description = document.getElementById("descriptionInput").value.trim();
+                const link = document.getElementById("linkInput").value.trim();
+                const imageFile = document.getElementById("imageInput").files[0];
+            
+                if (!diseaseName || !symptoms || !description || !imageFile || !link) {
+                    alert('Please fill in all fields and select an image.');
+                    return;
+                }
+            
+                const storageRef = firebase.storage().ref();
+                const imageRef = storageRef.child(`images/${imageFile.name}`);
+            
+                imageRef.put(imageFile)
+                    .then((snapshot) => {
+                        return snapshot.ref.getDownloadURL();
+                    })
+                    .then((imageUrl) => {
+                        const curesCollection = firebase.firestore().collection('cures');
+                        return curesCollection.doc(diseaseName).set({
+                            symptoms: symptoms,
+                            description: description,
+                            imageUrl: imageUrl,
+                            link:link
+                        });
+                    })
+                    .then(() => {
+                        alert('Data Added Successfully.');
+                        newContentForm.reset();
+                        document.getElementById('previewImage').src = '#';
+                    })
+                    .catch((error) => {
+                        console.error('Error adding cure details:', error);
+                        alert('An error occurred. Please try again.');
+                    });
+            });
+            
+        });
+        
+
+
+    </script>
+    <script>
+        
+        function fetchPreviousListings() {
+            const contentContainer = document.getElementById("content");
+            if (!contentContainer) {
+                console.error("Content container not found.");
+                return;
+            }
+            contentContainer.innerHTML = "";
+            const curesCollection = firebase.firestore().collection('cures');
+            curesCollection.get().then((querySnapshot) => {
+                querySnapshot.forEach((doc) => {
+                    const data = doc.data();
+                    const name = doc.id; // Document ID as name
+                    const symptoms = data.symptoms || "Symptoms not available";
+                    const description = data.description || "Description not available";
+                    const link = data.link || "Video link not available";
+                    const imageUrl = data.imageUrl || "";
+                    const listingElement = document.createElement("div");
+                    listingElement.classList.add("listing");
+                    const contentWrapper = document.createElement("div");
+                    contentWrapper.classList.add("content-wrapper");
+                    const imageWrapper = document.createElement("div");
+                    imageWrapper.classList.add("image-wrapper");
+                    contentWrapper.innerHTML = `
+                        <h3>Name: ${name}</h3>
+                        <p><strong>Symptoms:</strong> ${symptoms}</p>
+                        <p><strong>Cure:</strong> ${description}</p>
+                        <p><strong><a href="${link}" target="_blank">Click here for Video</a></strong></p>
+                    `;
+                    if (imageUrl) {
+                        const imageElement = document.createElement("img");
+                        imageElement.src = imageUrl;
+                        imageElement.alt = "Listing Image";
+                        imageElement.classList.add("listing-image");
+                        imageElement.style.width = "150px"; 
+                        imageWrapper.appendChild(imageElement);
+                    }
+                    listingElement.appendChild(contentWrapper);
+                    const deleteButton = document.createElement("button");
+                    deleteButton.textContent = "Delete";
+                    deleteButton.className = "delete-btn";
+                    listingElement.appendChild(imageWrapper);
+                    listingElement.style.display = "flex";
+                    listingElement.style.alignItems = "center";
+                    contentWrapper.style.flex = "1";
+                    imageWrapper.style.marginLeft = "20px"; 
+                    deleteButton.addEventListener("click", () => {
+                        const confirmDelete = confirm(`Are you sure you want to delete '${name}'?`);
+                        if (confirmDelete) {
+                            curesCollection.doc(doc.id).delete()
+                                .then(() => {
+                                    console.log(`Document '${name}' successfully deleted.`);
+                                    contentContainer.removeChild(listingElement);
+                                })
+                                .catch((error) => {
+                                    console.error("Error removing document:", error);
+                                });
+                        }
+                    });
+                    listingElement.appendChild(deleteButton);
+                    contentContainer.appendChild(listingElement);
+                });
+                const searchInput = document.getElementById("searchInput");
+                if (searchInput) {
+                    searchInput.addEventListener("input", function() {
+                        const searchTerm = searchInput.value.toLowerCase();
+                        const listings = document.querySelectorAll(".listing");
+                        listings.forEach((listing) => {
+                            const nameText = listing.querySelector("h3").textContent.toLowerCase();
+                            if (nameText.includes(searchTerm)) {
+                                listing.style.display = "flex"; 
+                            } else {
+                                listing.style.display = "none";
+                            }
+                        });
+                    });
+                }
+            }).catch((error) => {
+                console.error("Error fetching previous listings:", error);
+            });
+        }
+    </script>
+    <script>
+        function signOut() {
+            window.location.href = 'login.html';
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Previous Listings</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <script src="firebase.js"></script>
+    <link href="https://fonts.googleapis.com/css?family=Open+Sans:300,400,700" rel="stylesheet">
+    <link rel="stylesheet" href="Assets/fonts/icomoon/style.css">
+    <link rel="stylesheet" href="Assets/css/owl.carousel.min.css">
+    <link rel="stylesheet" href="Assets/css/bootstrap.min.css">
+    <link rel="stylesheet" href="Assets/css/style.css">
+    <link rel="stylesheet" href="main.css">
+</head>
+<body>
+    <header class="site-navbar" role="banner">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-11 col-xl-2">
+                    <h1 class="mb-0 site-logo"><a href="#" class="text-white mb-0">AYUSHMITHRA</a></h1>
+                </div>
+                <div class="col-12 col-md-10 d-none d-xl-block">
+                    <nav class="site-navigation position-relative text-right" role="navigation">
+                        <ul class="site-menu js-clone-nav mr-auto d-none d-lg-block">
+                            <li class="menu-item active" data-target="home"><a href="#">Home</a></li>
+                            <li class="menu-item" data-target="listings"><a href="#" onclick="getUserProfile()">Profile</a></li>
+                            <li><a onclick="signOut()" style="cursor: pointer;">Logout</a></li>
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </header>
+    <main>
+        <div class="container" id="homeContainer">
+            <input type="text" id="searchInput" placeholder="Search by name...">
+            <div id="listingContainer"></div>
+        </div>
+        <div class="container" id="profileContainer">
+            <h1>Profile</h1>
+            <div>
+                <p><strong>Name:</strong> <span id="userName"></span></p>
+                <p><strong>Email:</strong> <span id="userEmail"></span></p>
+                <button onclick="resetPassword()">Reset Password</button>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        function loadContent(target) {
+            const sections = document.querySelectorAll("main > .container");
+            sections.forEach(section => {
+                if (section.id === target + "Container") {
+                    section.style.display = "block";
+                    if (target === "home") {
+                        fetchPreviousListings();
+                    } else if (target === "listings") {
+                        getUserProfile();
+                    }
+                } else {
+                    section.style.display = "none";
+                }
+            });
+        }
+
+        document.addEventListener("DOMContentLoaded", () => {
+            const activeMenuItem = document.querySelector(".menu-item.active");
+            if (activeMenuItem) {
+                const target = activeMenuItem.getAttribute("data-target");
+                loadContent(target);
+            }
+            const menuItems = document.querySelectorAll(".menu-item");
+            menuItems.forEach(item => {
+                item.addEventListener("click", event => {
+                    event.preventDefault();
+                    const target = item.getAttribute("data-target");
+                    loadContent(target);
+                    menuItems.forEach(menuItem => {
+                        menuItem.classList.remove("active");
+                    });
+                    item.classList.add("active");
+                });
+            });
+            const searchInput = document.getElementById("searchInput");
+            if (searchInput) {
+                searchInput.addEventListener("input", () => {
+                    const searchTerm = searchInput.value.trim().toLowerCase();
+                    const listings = document.querySelectorAll(".listing");
+
+                    listings.forEach(listing => {
+                        const nameText = listing.querySelector("h3").textContent.toLowerCase();
+                        if (nameText.includes(searchTerm)) {
+                            listing.style.display = "block";
+                        } else {
+                            listing.style.display = "none";
+                        }
+                    });
+                });
+            }
+        });
+        function signOut() {
+            window.location.href = 'login.html';
+        }
+        function getUserProfile() {
+            const usersRef = firebase.database().ref('users');
+            const urlParams = new URLSearchParams(window.location.search);
+            const userEmail = urlParams.get('email'); 
+            usersRef.orderByChild('email').equalTo(userEmail).once('value')
+                .then((snapshot) => {
+                    if (snapshot.exists()) {
+                        const userData = snapshot.val();
+                        const userId = Object.keys(userData)[0];
+                        const user = userData[userId];
+        
+                        const userNameElement = document.getElementById("userName");
+                        const userEmailElement = document.getElementById("userEmail");
+        
+                        if (userNameElement && userEmailElement) {
+                            userNameElement.textContent = user.name || "N/A";
+                            userEmailElement.textContent = user.email || "N/A";
+                            document.getElementById("profileContainer").style.display = "block";
+                        } else {
+                            console.error("Profile elements not found.");
+                        }
+                    } else {
+                        console.log("No user found with the provided email.");
+                    }
+                })
+                .catch((error) => {
+                    console.error("Error fetching user details:", error);
+                });
+        }
+        function fetchPreviousListings() {
+            const listingContainer = document.getElementById("listingContainer");
+            if (!listingContainer) {
+                console.error("Listing container not found.");
+                return;
+            }
+            listingContainer.innerHTML = "";
+            const curesCollection = firebase.firestore().collection('cures');
+            curesCollection.get().then(querySnapshot => {
+                querySnapshot.forEach(doc => {
+                    const data = doc.data();
+                    const name = doc.id; 
+                    const symptoms = data.symptoms || "Symptoms not available";
+                    const description = data.description || "Description not available";
+                    const link = data.link || "Video link not available";
+                    const imageUrl = data.imageUrl || ""; 
+                    const listingElement = document.createElement("div");
+                    listingElement.classList.add("listing");
+                    const contentWrapper = document.createElement("div");
+                    contentWrapper.classList.add("content-wrapper");
+                    contentWrapper.innerHTML = `
+                        <h3>Name: ${name}</h3>
+                        <p><strong>Symptoms:</strong> ${symptoms}</p>
+                        <p><strong>Description:</strong> ${description}</p>
+                        <p><strong><a href="${link}" target="_blank">Click here for Video</a></strong></p>
+                    `;
+                    listingElement.appendChild(contentWrapper);
+                    if (imageUrl) {
+                        const imageElement = document.createElement("img");
+                        imageElement.src = imageUrl;
+                        imageElement.alt = "Listing Image";
+                        imageElement.classList.add("listing-image");
+                        const imageWrapper = document.createElement("div");
+                        imageWrapper.classList.add("image-wrapper");
+                        imageWrapper.appendChild(imageElement);
+                        listingElement.appendChild(imageWrapper);
+                    }
+                    listingContainer.appendChild(listingElement);
+                });
+            }).catch(error => {
+                console.error("Error fetching previous listings:", error);
+            });
+        }
+        function resetPassword() {
+            const user = firebase.auth().currentUser;
+
+            if (user) {
+                const email = user.email;
+
+                firebase.auth().sendPasswordResetEmail(email)
+                    .then(() => {
+                        alert("Password reset email sent!");
+                    })
+                    .catch((error) => {
+                        console.error("Error sending password reset email:", error);
+                        alert("Failed to send password reset email.");
+                    });
+            } else {
+                console.log("No user signed in.");
+            }
+        }
+    </script>
+</body>
+</html>
